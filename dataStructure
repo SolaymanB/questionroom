@@ -1,0 +1,74 @@
+{
+  "sessions": [
+    {
+      "sessionId": "0001",
+      "passcode": "1234",
+      "hostId": "1234",
+      "status": "Active",
+      "startedTime": "",
+      "createdUserName": "",
+      "parentSessionId": "",
+      "endedTime": "",
+      "tag": "Computer Science",
+      "questions": [
+        {
+          // Multiple choice question
+          "questionId": "1234",
+          "hostId": "1234",
+          "text": "",
+          "type": "multi",
+          "reactionCount": "",
+          "options": [
+            {
+              "optionId": "1234",
+              "text": ""
+            }
+          ],
+          "answers": [
+            {
+              "answerId": "1234",
+              "optionId": "1234",
+              "studentId": "1234",
+              "answeredTime": "",
+              "visibility": "private"
+            }
+          ]
+        },
+        {
+          // Free form question
+          "questionId": "1234",
+          "hostId": "1234",
+          "text": "",
+          "type": "free",
+          "reactionCount": "",
+          "answers": [
+            {
+              "answerId": "1234",
+              "text": "",
+              "studentId": "1234",
+              "answeredTime": "",
+              "visibility": "public"
+            }
+          ]
+        },
+        {
+          // Student question
+          "questionId": "1234",
+          "studentId": "1234",
+          "text": "",
+          "type": "free",
+          "reactionCount": ""
+        }
+      ],
+      "students": [
+        {
+          "studentId": "1234",
+          "name": "Patrick",
+          "joinedTime": "",
+          "isAnnoymous": true
+        }
+      ]
+    }
+  ],
+  "shared": []
+}
