@@ -32,7 +32,7 @@ const registerWithEmailAndPassword = async (name, email, password) => {
     const user = res.user;
     return user;
   } catch (err) {
-    return error;
+    return err;
   }
 };
 
