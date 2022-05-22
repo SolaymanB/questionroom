@@ -18,8 +18,15 @@ function App(props) {
 
   const navigate = useNavigate();
 
+  function renderUserTitle() {
+    if (user?.isAnonymous) {
+      return 'Anonymous'
+    } else {
+      return user?.displayName
+    }
+  }
+
   useEffect(() => {
-    console.log({ user });
     if (!user) {
       navigate("/login");
     }
@@ -28,14 +35,14 @@ function App(props) {
   return (
     <div className="p-3">
       <Row xs={1} md={5} className="mb-4 justify-content-between">
-        <Col>
+        <Col className="d-flex justify-content-start align-items-center">
           <Form>
-            <Form.Group className="mb-3" controlId="search">
+            <Form.Group controlId="search">
               <Form.Control type="search" placeholder="Search..." />
             </Form.Group>
           </Form>
         </Col>
-        <Col className="d-flex justify-content-end">
+        <Col className="d-flex justify-content-end align-items-center">
           <DropdownButton
             variant="light"
             align="end"
@@ -48,10 +55,15 @@ function App(props) {
             <Dropdown.Item eventKey="2">Forensics</Dropdown.Item>
             <Dropdown.Item eventKey="3">Networking</Dropdown.Item>
           </DropdownButton>
+
+          <Button variant="secondary" onClick={() => navigate('/rooms')}>
+            New Room
+          </Button>
         </Col>
       </Row>
+      <h3>Hi, {renderUserTitle()}</h3>
       <Row xs={1} md={5} className="g-4">
-        {Array.from({ length: 12 }).map((_, idx) => (
+        {Array.from({ length: 5 }).map((_, idx) => (
           <Col>
             <Card>
               <Card.Body>

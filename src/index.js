@@ -17,8 +17,8 @@ root.render(
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/" element={<App />} />
-          <Route path="session" element={<Room />}>
-            <Route path=":sessionId" element={<Room />} />
+          <Route path="rooms" element={<Room />}>
+            <Route path=":roomId" element={<Room />} />
           </Route>
         </Routes>
       </Layout>

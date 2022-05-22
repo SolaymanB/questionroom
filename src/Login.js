@@ -1,31 +1,42 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { auth, signInAnonymously, logInWithEmailAndPassword } from "./firebase";
+import { auth, db, signInAnonymously, logInWithEmailAndPassword, registerWithEmailAndPassword } from "./firebase";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { Card, Col, Form, Row } from "react-bootstrap";
 import { Button, Alert } from "react-bootstrap";
 
 function Login() {
+
   const [signInType, setSignInType] = useState("Anonymous");
-  const [email, setEmail] = useState("ayan@gmail.com");
-  const [password, setPassword] = useState("1231231231");
+  const [name, setName] = useState("ayan");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [user, loading] = useAuthState(auth);
 
   const navigate = useNavigate();
 
+  // Handles the submission of the form
   async function onClickContinue(e) {
+    // by default the form submit will refresh the page, in order to
+    // stop this we call preventDefault()
     e.preventDefault();
     setIsLoading(true);
+    let res;
     try {
-      // Fake delay for 2 seconds
       if (signInType === "Anonymous") {
-        await signInAnonymously();
+        res = await signInAnonymously();
       }
       if (signInType === "SignIn") {
-        await logInWithEmailAndPassword(email, password);
+        res = await logInWithEmailAndPassword(email, password);
       }
+      if (signInType === "Register") {
+        res = await registerWithEmailAndPassword(name, email, password);
+      }
+      const usersRef = db.ref(`users/${res?.user?.uid || res?.uid}`).set({
+        loginTime: Date.now()
+      });
       setIsLoading(false);
     } catch (error) {
       setIsLoading(false);
@@ -34,13 +45,10 @@ function Login() {
   }
 
   useEffect(() => {
-    if (loading) {
-      console.log({ loading });
-      // maybe trigger a loading screen
-      return;
-    }
+    // when there is a user signed in, take them 
+    // to the dashboard screen
     if (user) navigate("/");
-  }, [user, loading]);
+  }, [user]);
 
   useEffect(() => {
     // everytime signInType changes clear the fields
@@ -70,7 +78,7 @@ function Login() {
                 Anonymously
               </Button>
               <Button
-                variant={signInType === "SignIn" ? "secondary" : "light"}
+                variant={(signInType === "SignIn" || signInType === "Register") ? "secondary" : "light"}
                 onClick={() => setSignInType("SignIn")}
                 size="lg"
               >
@@ -82,13 +90,27 @@ function Login() {
                 </Alert>
               )}
 
-              {signInType === "SignIn" && (
+
+              {signInType !== "Anonymous" && (
                 <Row className="mt-3">
                   <Col>
-                    <Form.Group controlId="search">
+                    {signInType === "Register" &&
+                      <Form.Group controlId="name">
+                        <Form.Control
+                          required
+                          className="bg-muted border rounded-0 mb-1"
+                          type="text"
+                          placeholder="Name"
+                          value={name}
+                          onChange={(e) => setName(e.target.value)}
+                          disabled={isLoading}
+                        />
+                      </Form.Group>
+
+                    }
+                    <Form.Group controlId="email">
                       <Form.Control
                         required
-                        autoComplete="off"
                         className="bg-muted border rounded-0 mb-1"
                         type="email"
                         placeholder="Email Address"
@@ -100,7 +122,6 @@ function Login() {
                     <Form.Group controlId="password">
                       <Form.Control
                         required
-                        autoComplete="off"
                         className="bg-muted border rounded-0"
                         type="password"
                         placeholder="Password"
@@ -109,14 +130,17 @@ function Login() {
                         disabled={isLoading}
                       />
                     </Form.Group>
-                    <p className="text-muted w-100 text-end">
-                      <small>
-                        Don't have an account?{" "}
-                        <Link to="/register" className="text-decoration-none">
-                          Register
-                        </Link>
-                      </small>
-                    </p>
+                    {signInType !== "Register" &&
+                      <p className="text-muted w-100 text-end">
+                        <small>
+                          Don't have an account?{" "}
+                          <a href="#" onClick={() => setSignInType("Register")} className="text-decoration-none">
+                            Register
+                          </a>
+                        </small>
+                      </p>
+
+                    }
                   </Col>
                 </Row>
               )}
