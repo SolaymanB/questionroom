@@ -11,3 +11,5 @@ Individual Project
 - Change to directory for this repo
 - Run `npm install`
 - Run `npm start`
+
+## Stack
