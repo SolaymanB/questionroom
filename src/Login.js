@@ -1,12 +1,17 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { auth, db, signInAnonymously, logInWithEmailAndPassword, registerWithEmailAndPassword } from "./firebase";
+import {
+  auth,
+  db,
+  signInAnonymously,
+  logInWithEmailAndPassword,
+  registerWithEmailAndPassword,
+} from "./firebase";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { Card, Col, Form, Row } from "react-bootstrap";
 import { Button, Alert } from "react-bootstrap";
 
 function Login() {
-
   const [signInType, setSignInType] = useState("Anonymous");
   const [name, setName] = useState("ayan");
   const [email, setEmail] = useState("");
@@ -34,8 +39,9 @@ function Login() {
       if (signInType === "Register") {
         res = await registerWithEmailAndPassword(name, email, password);
       }
-      const usersRef = db.ref(`users/${res?.user?.uid || res?.uid}`).set({
-        loginTime: Date.now()
+      db.ref(`users/${res?.user?.uid || res?.uid}`).set({
+        name: res?.user?.displayName || res?.displayName || "Anonymous",
+        loginTime: Date.now(),
       });
       setIsLoading(false);
     } catch (error) {
@@ -45,7 +51,7 @@ function Login() {
   }
 
   useEffect(() => {
-    // when there is a user signed in, take them 
+    // when there is a user signed in, take them
     // to the dashboard screen
     if (user) navigate("/");
   }, [user]);
@@ -78,7 +84,11 @@ function Login() {
                 Anonymously
               </Button>
               <Button
-                variant={(signInType === "SignIn" || signInType === "Register") ? "secondary" : "light"}
+                variant={
+                  signInType === "SignIn" || signInType === "Register"
+                    ? "secondary"
+                    : "light"
+                }
                 onClick={() => setSignInType("SignIn")}
                 size="lg"
               >
@@ -90,11 +100,10 @@ function Login() {
                 </Alert>
               )}
 
-
               {signInType !== "Anonymous" && (
                 <Row className="mt-3">
                   <Col>
-                    {signInType === "Register" &&
+                    {signInType === "Register" && (
                       <Form.Group controlId="name">
                         <Form.Control
                           required
@@ -106,8 +115,7 @@ function Login() {
                           disabled={isLoading}
                         />
                       </Form.Group>
-
-                    }
+                    )}
                     <Form.Group controlId="email">
                       <Form.Control
                         required
@@ -130,17 +138,20 @@ function Login() {
                         disabled={isLoading}
                       />
                     </Form.Group>
-                    {signInType !== "Register" &&
+                    {signInType !== "Register" && (
                       <p className="text-muted w-100 text-end">
                         <small>
                           Don't have an account?{" "}
-                          <a href="#" onClick={() => setSignInType("Register")} className="text-decoration-none">
+                          <a
+                            href="#"
+                            onClick={() => setSignInType("Register")}
+                            className="text-decoration-none"
+                          >
                             Register
                           </a>
                         </small>
                       </p>
-
-                    }
+                    )}
                   </Col>
                 </Row>
               )}
