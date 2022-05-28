@@ -37,7 +37,8 @@ function QuestionCreator(props) {
       askedTime: dayjs().format(),
       userName: user?.displayName || "Anonymous",
       options: options,
-      answers: [],
+      showQuestion: props.isRoomHost ? true : false,
+      visibility: "private",
     });
     props.onQuestionSubmit();
   }
@@ -47,7 +48,7 @@ function QuestionCreator(props) {
       <Form id="new-question-form" onSubmit={postQuestion}>
         <Form.Group controlId="question-text" className="mb-3">
           <Form.Control
-            required={true}
+            required
             as="textarea"
             autoComplete="off"
             size="lg"
