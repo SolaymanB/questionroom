@@ -1,13 +1,20 @@
+$primary: #f80000;
+$secondary: black;
+$danger: #f80000;
+$dark: #b3b3b3;
+$grey: #dcdcdc;
+$light: white;
+
 // Fonts
 $font-family-base: "Roboto", sans-serif;
 
 $theme-colors: (
-  "primary": #f80000,
-  "secondary": black,
-  "danger": #f80000,
-  "dark": #b3b3b3,
-  "grey": #dcdcdc,
-  "light": white,
+  "primary": $primary,
+  "secondary": $secondary,
+  "danger": $danger,
+  "dark": $dark,
+  "grey": $grey,
+  "light": $light,
 );
 
 $body-bg: #f4f4f4;
@@ -24,3 +31,10 @@ $input-border-radius: 0px;
 
 // Buttons
 $btn-border-radius: 0px;
+
+// List groups
+$list-group-active-bg: $grey;
+$list-group-active-color: black;
+
+// Badges
+$badge-padding-y: 0.3em;

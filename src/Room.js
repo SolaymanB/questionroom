@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useLocation, useParams } from "react-router-dom";
 import Row from "react-bootstrap/Row";
 import Col from "react-bootstrap/Col";
 import Card from "react-bootstrap/Card";
@@ -7,6 +7,8 @@ import Button from "react-bootstrap/Button";
 import Form from "react-bootstrap/Form";
 import Modal from "react-bootstrap/Modal";
 import ListGroup from "react-bootstrap/ListGroup";
+import Badge from "react-bootstrap/Badge";
+import ProgressBar from "react-bootstrap/ProgressBar";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { v4 as uuidv4 } from "uuid";
 import dayjs from "dayjs";
@@ -14,119 +16,343 @@ import { db, auth } from "./firebase";
 import { useNavigate } from "react-router-dom";
 import cx from "classnames";
 import QuestionCreator from "./components/QuestionCreator";
+import DropdownButton from "react-bootstrap/DropdownButton";
+import Dropdown from "react-bootstrap/Dropdown";
 
 function Room(props) {
+  const navigate = useNavigate();
+  const location = useLocation();
+
   const [room, setRoom] = useState(null);
+  const [newRoomDesc, setNewRoomDesc] = useState("");
+  const [newRoomTag, setNewRoomTag] = useState(
+    location.state?.room?.tag || "Computer Science"
+  );
   const [question, setQuestion] = useState("");
+  const [currentAnswerQuestionId, setCurrentAnswerQuestionId] = useState(null);
+  const [currentAnswerText, setCurrentAnswerText] = useState("");
   const [newQuestionMode, setNewQuestionMode] = useState(false);
+  const [showJoinModal, setShowJoinModal] = useState(true);
 
   const [user, loading] = useAuthState(auth);
   let params = useParams();
 
-  const navigate = useNavigate();
+  const isNewRoomMode = Boolean(!params?.roomId);
+  const isRoomHost = room?.hostId === user?.uid;
+
+  function joinRoom(roomId) {
+    const id = roomId || params.roomId;
+    if (id && user) {
+      db.ref(`rooms/${id}`).on("value", (snap) => {
+        setRoom(snap.val());
+      });
+      db.ref(`rooms/${id}/participants/`)
+        .child(user.uid)
+        .update({
+          name: user.displayName || "Anonymous",
+          uid: user.uid,
+        })
+        .then(() => {
+          setShowJoinModal(false);
+        });
+    }
+  }
 
   function handleCreateRoom() {
+    const baseRoom = location?.state?.room;
+
+    if (baseRoom) {
+      Object.keys(baseRoom.questions).forEach((questionId) => {
+        baseRoom.questions[questionId].askedTime = dayjs().format();
+        baseRoom.questions[questionId].uid = user?.uid;
+        baseRoom.questions[questionId].userName =
+          user?.displayName || "Anonymous";
+      });
+    }
     const roomObject = {
+      ...baseRoom,
       roomId: uuidv4(),
+      roomDesc: newRoomDesc,
       passcode: "1234",
       hostId: user?.uid,
       status: "Active",
       startedTime: dayjs().format(),
       createdUserName: user?.displayName || "Anonymous",
-      parentSessionId: null,
+      parentRoomId: baseRoom?.originalRoomId || null,
       endedTime: null,
-      tag: "Computer Science",
-      questions: [
-        {
-          // Multiple choice question
-          questionId: uuidv4(),
-          hostId: user?.uid,
-          text: "What is your name?",
-          type: "multi",
-          reactionCount: 3,
-          askedTime: dayjs().format(),
-          userName: user?.displayName || "Anonymous",
-          options: [
-            {
-              optionId: uuidv4(),
-              text: "Ayan",
-            },
-            {
-              optionId: uuidv4(),
-              text: "Sully",
-            },
-            {
-              optionId: uuidv4(),
-              text: "Samir",
-            },
-          ],
-          answers: [
-            // {
-            //   answerId: "1234",
-            //   optionId: "1234",
-            //   studentId: "1234",
-            //   answeredTime: "",
-            //   visibility: "private",
-            // },
-          ],
-        },
-      ],
-      members: [],
+      tag: newRoomTag,
     };
-    const usersRef = db.ref(`rooms/${roomObject.roomId}`).set(roomObject);
-    navigate(`/rooms/${roomObject.roomId}`);
+    db.ref(`rooms/${roomObject.roomId}`)
+      .set(roomObject)
+      .then(() => {
+        joinRoom(roomObject.roomId);
+        navigate(`/rooms/${roomObject.roomId}`);
+      });
   }
 
-  function handleAnswerMultiQuestion(question, answer) {
-    console.log({ question, answer });
-    // const usersRef = db.ref(`rooms/${room.roomId}/questions/${question.}`).set({
-    //   // Student question
-    //   uid: user.uid,
-    //   text: question,
-    //   type: "free",
-    //   reactionCount: 0,
-    //   askedTime: dayjs().format(),
-    //   userName: user?.displayName || "Anonymous",
-    // });
+  function handleAnswerQuestion(question, answer) {
+    if (question.visibility === "public") return;
+    let newAnswer = {
+      text: answer?.optionId ? null : answer, // only set text when its not multi-select
+      optionId: answer?.optionId || null, // only needed for multi-select answers
+      uid: user.uid,
+      answeredTime: dayjs().format(),
+      answeredBy: user.displayName || "Anonymous",
+      visibility: "private", // always private by default
+    };
+
+    // First check if question has been made visible
+    // then insert a new answer as public so it can be
+    // seen by everyone as its answered live
+    db.ref(`rooms/${room.roomId}/questions/${question.questionId}`).once(
+      "value",
+      (snap) => {
+        const questionObject = snap.val();
+        if (questionObject.visibility === "public") {
+          newAnswer.visibility = "public";
+        }
+        console.log("HERE!");
+        db.ref(`rooms/${room.roomId}/questions`)
+          .child(question.questionId)
+          .child(`answers/${user.uid}`)
+          .set(newAnswer);
+      }
+    );
+
+    setCurrentAnswerText("");
   }
 
   function postQuestion(e) {
     e.preventDefault();
     setNewQuestionMode(false);
     const usersRef = db.ref(`rooms/${room.roomId}/questions/${uuidv4()}`).set({
-      // Student question
       uid: user.uid,
       text: question,
       type: "free",
       reactionCount: 0,
       askedTime: dayjs().format(),
       userName: user?.displayName || "Anonymous",
+      showQuestion: isRoomHost ? true : false,
+      visibility: "private",
     });
     setQuestion("");
   }
 
-  useEffect(() => {
-    if (params.roomId) {
-      const room = db.ref(`rooms/${params.roomId}`).on("value", (snap) => {
-        setRoom(snap.val());
+  function handleCurrentActiveQuestion(questionId) {
+    console.log("HEREEE!!");
+    // sets the current active question user
+    // is about to answer so we can show the
+    // answer input box
+    if (questionId !== currentAnswerQuestionId) {
+      // only change if its not the same question
+      // already selected
+      setCurrentAnswerText("");
+      setCurrentAnswerQuestionId(questionId);
+    }
+  }
+
+  function countNoOfOptionsAnswered(question, optionId, answers) {
+    let count = 0;
+    if (answers) {
+      Object.keys(answers).forEach((userIdKey) => {
+        console.log(answers[userIdKey].optionId, optionId);
+        if (
+          answers[userIdKey].optionId === optionId &&
+          (answers[userIdKey].visibility !== "private" ||
+            question.uid === user.uid)
+        ) {
+          count = count + 1;
+        }
       });
     }
-  }, [params]);
+    return count;
+  }
+
+  function isCurrentUsersAnswer(optionId, answers) {
+    let isAnswered = false;
+    let answer = null;
+    if (answers) {
+      Object.keys(answers).forEach((userIdKey) => {
+        if (answers[userIdKey]?.uid === user?.uid) {
+          answer = answers[userIdKey];
+        }
+      });
+    }
+    if (answer?.optionId === optionId) {
+      isAnswered = true;
+    }
+    return isAnswered;
+  }
+
+  function changeAnswerVisibility(question, isMakingPrivate) {
+    console.log({ question });
+    const updatedAnswers = {};
+
+    db.ref(`rooms/${room.roomId}/questions`)
+      .child(question.questionId)
+      .update({ visibility: isMakingPrivate ? "private" : "public" });
+
+    if (question?.answers) {
+      Object.keys(question?.answers).forEach((key) => {
+        updatedAnswers[key] = {
+          ...question.answers[key],
+          visibility: isMakingPrivate ? "private" : "public",
+        };
+      });
+
+      db.ref(`rooms/${room.roomId}/questions`)
+        .child(question.questionId)
+        .child("answers")
+        .update(updatedAnswers);
+    }
+  }
+
+  function handlePublishQuestion(question) {
+    db.ref(`rooms/${room.roomId}/questions`)
+      .child(question.questionId)
+      .update({
+        showQuestion: question.showQuestion ? false : true,
+        visibility: "private",
+        publishedTime: dayjs().format(),
+      })
+      .then(() => {
+        changeAnswerVisibility(question, true);
+      });
+  }
+
+  function shareRoom() {
+    // make a copy of the room
+    let sharedRoom = JSON.parse(JSON.stringify(room));
+
+    // keep some meta data for tracking who originally created the room
+    sharedRoom.originalCreatedUserName = sharedRoom.createdUserName;
+    sharedRoom.originalHostId = sharedRoom.hostId;
+    sharedRoom.originalRoomId = sharedRoom.roomId;
+    sharedRoom.sharedAt = dayjs().format();
+
+    // delete properties that are not needed
+    delete sharedRoom.createdUserName;
+    delete sharedRoom.hostId;
+    delete sharedRoom.roomId;
+    delete sharedRoom.participants;
+    delete sharedRoom.startedTime;
+    delete sharedRoom.passcode;
+
+    Object.keys(sharedRoom.questions).forEach((questionId) => {
+      // delete all answers from the room
+      delete sharedRoom.questions[questionId].answers;
+      // make each question public incase it was made private
+      sharedRoom.questions[questionId].visibility = "publilc";
+      // remove the asked time so it can be set again when someone
+      // creates a new room with it
+      delete sharedRoom.questions[questionId].askedTime;
+      // delete details of the user who asked the question
+      delete sharedRoom.questions[questionId].userName;
+      delete sharedRoom.questions[questionId].uid;
+      // reset the react count for each question
+      sharedRoom.questions[questionId].reactionCount = 0;
+    });
+
+    db.ref("shared").push(sharedRoom);
+  }
 
   useEffect(() => {
-    if (!user) {
-      // navigate("/login");
+    console.log({ loading });
+    if (!user && !loading) {
+      navigate("/login");
     }
-  }, [user]);
+  }, [user, loading]);
+
+  function renderJoinModal() {
+    return (
+      <Modal show={showJoinModal} backdrop="static" centered>
+        <Modal.Header>
+          <Modal.Title>Join Session</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>Are you sure you want to join this session?</Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => joinRoom()}>
+            Join Session
+          </Button>
+          <Button variant="danger" onClick={() => navigate("/")}>
+            Cancel
+          </Button>
+        </Modal.Footer>
+      </Modal>
+    );
+  }
 
   function renderNewRoomCreator() {
     return (
       <Modal show={isNewRoomMode} backdrop="static" centered>
         <Modal.Header>
-          <Modal.Title>New Session</Modal.Title>
+          <Modal.Title>New Room</Modal.Title>
         </Modal.Header>
-        <Modal.Body>Woohoo, you're reading this text in a modal!</Modal.Body>
+        <Modal.Body>
+          <Form
+            onSubmit={(e) => {
+              e.preventDefault();
+              // handleAnswerQuestion(question, currentAnswerText);
+            }}
+          >
+            {location.state?.room && (
+              <>
+                <p>
+                  You are creating a new room using a shared room. This will
+                  import all questions and post them in newly created room.
+                </p>
+                <Card className="mb-3">
+                  <Card.Body className="bg-grey">
+                    <Card.Title className="text-primary">
+                      {location.state?.room?.tag}
+                    </Card.Title>
+                    <Card.Text>
+                      Questions:{" "}
+                      {location?.state?.room &&
+                        Object.keys(location?.state?.room?.questions)?.length}
+                    </Card.Text>
+                  </Card.Body>
+                </Card>
+              </>
+            )}
+            <Form.Group controlId="room-name" className="mb-2">
+              <Form.Label>Room Description (optional)</Form.Label>
+              <Form.Control
+                as="textarea"
+                autoComplete="off"
+                size="lg"
+                type="text"
+                className="bg-grey"
+                placeholder="Enter room description..."
+                value={newRoomDesc}
+                onChange={(e) => setNewRoomDesc(e.target.value)}
+              />
+            </Form.Group>
+            <Form.Group controlId="room-tag">
+              <Form.Label>Select Tag</Form.Label>
+              <DropdownButton
+                variant="secondary"
+                align="end"
+                title={newRoomTag}
+                id="tags-dropdown-menu"
+              >
+                {["Computer Science", "Forensics", "Networking"].map((tag) => (
+                  <Dropdown.Item
+                    active={tag === newRoomTag}
+                    onClick={() => setNewRoomTag(tag)}
+                    eventKey={tag}
+                  >
+                    {tag}
+                  </Dropdown.Item>
+                ))}
+              </DropdownButton>
+            </Form.Group>
+          </Form>
+        </Modal.Body>
         <Modal.Footer>
+          <Button variant="light" onClick={() => navigate("/")}>
+            Cancel
+          </Button>
           <Button variant="secondary" onClick={handleCreateRoom}>
             Create Room
           </Button>
@@ -147,6 +373,7 @@ function Room(props) {
         </Modal.Header>
         <Modal.Body>
           <QuestionCreator
+            isRoomHost={isRoomHost}
             roomId={params.roomId}
             onQuestionSubmit={() => setNewQuestionMode(false)}
           />
@@ -159,85 +386,256 @@ function Room(props) {
     // convert objects into arrays for easy sorting
     let questions = room?.questions
       ? Object.keys(room?.questions).map((k) => {
-          return { ...room?.questions[k], roomId: k };
+          return { ...room?.questions[k], questionId: k };
         })
       : null;
     let sortedQuestions = questions
       ? questions?.sort((a, b) =>
-          dayjs(a.askedTime).isAfter(dayjs(b.askedTime)) ? 1 : -1
+          dayjs(
+            isRoomHost
+              ? a.askedTime
+              : a.publishedTime !== undefined
+              ? a.publishedTime
+              : a.askedTime
+          ).isAfter(
+            dayjs(
+              isRoomHost
+                ? b.askedTime
+                : b.publishedTime !== undefined
+                ? b.publishedTime
+                : b.askedTime
+            )
+          )
+            ? 1
+            : -1
         )
       : null;
     return (
       <Col className="p-5 d-flex flex-column">
-        <Row className="mb-5">
+        <Row xs={1} sm={1} md={2} className="mb-5">
           <Col>
-            <Button
-              size="lg"
-              variant="light"
-              onClick={() => setNewQuestionMode(true)}
-            >
-              New Question
-            </Button>
+            <h1 className="text-secondary">
+              <strong>{room?.tag}</strong>
+            </h1>
+            <p>{room?.roomDesc}</p>
           </Col>
           <Col className="d-flex justify-content-end">
-            <Button size="lg" variant="light" className="mx-3">
-              Share
-            </Button>
-            <Button size="lg" variant="light">
-              Export
-            </Button>
+            <div>
+              {isRoomHost && (
+                <Button
+                  size="lg"
+                  variant="secondary"
+                  onClick={() => setNewQuestionMode(true)}
+                >
+                  New Question
+                </Button>
+              )}
+              <Button
+                size="lg"
+                variant="light"
+                className="mx-3"
+                onClick={shareRoom}
+              >
+                Share
+              </Button>
+              <Button size="lg" variant="light">
+                Export
+              </Button>
+            </div>
           </Col>
         </Row>
         <Row>
           <Col className="d-flex flex-column pb-5 mb-5">
             {sortedQuestions &&
-              Object.keys(sortedQuestions).map((key) => {
-                const question = sortedQuestions[key];
+              Object.keys(sortedQuestions).map((questionId) => {
+                const question = sortedQuestions[questionId];
                 const isCurrentUserQuestion = question?.uid === user?.uid;
-                return (
-                  <Card
-                    key={key}
-                    className={cx("chatItem mb-3", {
-                      "border-primary": isCurrentUserQuestion,
-                      "border-secondary": !isCurrentUserQuestion,
-                    })}
-                    style={{
-                      width: "500px",
-                      marginLeft: isCurrentUserQuestion ? "auto" : "",
-                    }}
-                  >
-                    <Card.Body className="rounded bg-light">
-                      <Card.Title>
-                        <strong>
-                          {isCurrentUserQuestion ? "You" : question?.userName}
-                        </strong>{" "}
-                        asked a question
-                      </Card.Title>
-                      <Card.Text>{question.text}</Card.Text>
-                      {question?.options?.length && (
+                if (
+                  isCurrentUserQuestion ||
+                  isRoomHost ||
+                  question.showQuestion !== false
+                )
+                  return (
+                    <Card
+                      key={questionId}
+                      onClick={() => handleCurrentActiveQuestion(questionId)}
+                      className={cx("chatItem mb-3", {
+                        "border-primary": isCurrentUserQuestion,
+                        "border-secondary": !isCurrentUserQuestion,
+                      })}
+                      style={{
+                        width: "500px",
+                        marginLeft: isCurrentUserQuestion ? "auto" : "",
+                      }}
+                    >
+                      <Card.Body className="rounded bg-light">
+                        <Card.Title>
+                          {question.uid === room.hostId && (
+                            <Badge bg="dark">Host</Badge>
+                          )}{" "}
+                          <strong>
+                            {isCurrentUserQuestion ? (
+                              <span className="text-primary">You</span>
+                            ) : (
+                              question?.userName
+                            )}
+                          </strong>{" "}
+                          asked a question
+                        </Card.Title>
+                        <Card.Text>Q. {question.text}</Card.Text>
                         <ListGroup className="mb-3">
-                          {question?.options?.map((a) => (
-                            <ListGroup.Item
-                              action
-                              key={a.optionId}
-                              onClick={() =>
-                                handleAnswerMultiQuestion(question, a.optionId)
+                          {question.type !== "multi" &&
+                            question?.answers &&
+                            Object.keys(question?.answers)?.map((key) => {
+                              if (
+                                question?.answers[key].visibility ===
+                                  "public" ||
+                                question?.uid === user?.uid ||
+                                question?.answers[key].uid === user.uid ||
+                                room.hostId === user.uid
+                              ) {
+                                return (
+                                  <ListGroup.Item
+                                    action
+                                    key={key}
+                                    // onClick={() => handleAnswerQuestion(question, a)}
+                                  >
+                                    A. {question?.answers[key]?.text}{" "}
+                                    <p className="m-0">
+                                      <small className="text-muted">
+                                        - {question?.answers[key]?.answeredBy}
+                                      </small>
+                                    </p>
+                                  </ListGroup.Item>
+                                );
                               }
-                            >
-                              {a.text}
-                            </ListGroup.Item>
-                          ))}
+                            })}
                         </ListGroup>
-                      )}
+                        <p>
+                          <small>
+                            Total Answers:{" "}
+                            {(question?.answers &&
+                              Object.keys(question?.answers)?.length) ||
+                              0}
+                          </small>
+                        </p>
+                        {question?.options?.length && (
+                          <ListGroup className="mb-3">
+                            {question?.options?.map((a) => {
+                              const noOfAnswers = countNoOfOptionsAnswered(
+                                question,
+                                a.optionId,
+                                question.answers
+                              );
+                              const isCurrentAnswer = isCurrentUsersAnswer(
+                                a.optionId,
+                                question.answers
+                              );
+                              return (
+                                <ListGroup.Item
+                                  action
+                                  active={isCurrentAnswer}
+                                  key={a.optionId}
+                                  onClick={() =>
+                                    handleAnswerQuestion(question, a)
+                                  }
+                                >
+                                  {a.text}
+                                  {noOfAnswers > 0 && (
+                                    <ProgressBar
+                                      variant={
+                                        question.visibility === "private"
+                                          ? "primary"
+                                          : "secondary"
+                                      }
+                                      now={noOfAnswers}
+                                      max={
+                                        question?.answers &&
+                                        Object.keys(question?.answers)?.length
+                                      }
+                                      label={`${(
+                                        (noOfAnswers /
+                                          Object.keys(question?.answers)
+                                            ?.length) *
+                                        100
+                                      ).toFixed()}%`}
+                                    />
+                                  )}
+                                </ListGroup.Item>
+                              );
+                            })}
+                          </ListGroup>
+                        )}
 
-                      {!isCurrentUserQuestion && question.type === "free" && (
-                        <Button size="sm" variant="secondary">
-                          Answer Question
-                        </Button>
-                      )}
-                    </Card.Body>
-                  </Card>
-                );
+                        {currentAnswerQuestionId === questionId &&
+                          question.type === "free" &&
+                          (isRoomHost ||
+                            (question.uid === user.uid &&
+                              question.visibility === "private") ||
+                            question.visibility === "private") && (
+                            <Form
+                              onSubmit={(e) => {
+                                e.preventDefault();
+                                handleAnswerQuestion(
+                                  question,
+                                  currentAnswerText
+                                );
+                              }}
+                            >
+                              <Form.Group controlId="option-text">
+                                <Form.Control
+                                  autoComplete="off"
+                                  size="sm"
+                                  type="text"
+                                  className="bg-grey"
+                                  placeholder="Type your answer..."
+                                  onClick={() => setCurrentAnswerText("")}
+                                  value={currentAnswerText}
+                                  onChange={(e) =>
+                                    setCurrentAnswerText(e.target.value)
+                                  }
+                                />
+                              </Form.Group>
+                            </Form>
+                          )}
+                        {isRoomHost && (
+                          <Button
+                            className="mt-2 me-2"
+                            variant={
+                              question.showQuestion ? "secondary" : "grey"
+                            }
+                            size="sm"
+                            onClick={() => handlePublishQuestion(question)}
+                          >
+                            {question.showQuestion
+                              ? "Publish Question"
+                              : "Publish Question"}
+                          </Button>
+                        )}
+                        {isRoomHost && question.showQuestion && (
+                          <Button
+                            className="mt-2"
+                            variant={
+                              question.visibility === "public"
+                                ? "secondary"
+                                : "grey"
+                            }
+                            size="sm"
+                            onClick={() =>
+                              changeAnswerVisibility(
+                                question,
+                                question.visibility === "public" ? true : false
+                              )
+                            }
+                          >
+                            {question.visibility === "public"
+                              ? "Hide Answers"
+                              : "Hide Answers"}
+                          </Button>
+                        )}
+                      </Card.Body>
+                    </Card>
+                  );
               })}
           </Col>
         </Row>
@@ -245,10 +643,10 @@ function Room(props) {
     );
   }
 
-  const isNewRoomMode = Boolean(!params?.roomId);
   return (
     <>
       <Row className="bg-dark h-100 overflow-auto">
+        {renderJoinModal()}
         {renderNewQuestionCreator()}
         {renderNewRoomCreator()}
         {renderRoom()}
@@ -257,7 +655,7 @@ function Room(props) {
         className="position-fixed w-100"
         style={{ bottom: "0px", left: "0px" }}
       >
-        {!isNewRoomMode && (
+        {!isNewRoomMode && !isRoomHost && (
           <Form onSubmit={postQuestion} className="p-5">
             <Form.Group controlId="question-text">
               <Form.Control

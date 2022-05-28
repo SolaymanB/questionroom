@@ -1,3 +1,7 @@
 .chatItem {
     border-top-width: 5px !important;
 }
+
+.chatItem:hover {
+    cursor: pointer;
+}
