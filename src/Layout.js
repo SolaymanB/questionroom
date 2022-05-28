@@ -4,24 +4,30 @@ import Col from "react-bootstrap/Col";
 import Button from "react-bootstrap/Button";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { auth, db, logout } from "./firebase";
+import { useNavigate } from "react-router-dom";
 
 function Layout(props) {
   const [user, loading, error] = useAuthState(auth);
-
+  const navigate = useNavigate();
+  
   function handleLogout() {
-    const usersRef = db.ref(`users/${user?.uid}`).remove()
-    logout()
+    const usersRef = db.ref(`users/${user?.uid}`).remove();
+    logout();
   }
 
   return (
     <Container fluid className="d-flex flex-column h-100">
       <Row className="bg-light">
         <Col className="p-4">
-          <img src="/logo.svg" className="img-fluid" />
+          <img
+            src="/logo.svg"
+            className="img-fluid"
+            onClick={() => navigate("/")}
+          />
         </Col>
         {user && (
           <Col className="p-4 flex-grow-0">
-            <Button onClick={handleLogout}>Logout</Button>
+            <Button variant="light" onClick={handleLogout}>Logout</Button>
           </Col>
         )}
       </Row>
