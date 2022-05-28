@@ -1,40 +1,59 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Button from "react-bootstrap/Button";
 import Container from "react-bootstrap/Container";
 import Row from "react-bootstrap/Row";
 import Col from "react-bootstrap/Col";
 import Card from "react-bootstrap/Card";
 import Form from "react-bootstrap/Form";
+import Badge from "react-bootstrap/Badge";
 import Dropdown from "react-bootstrap/Dropdown";
 import DropdownButton from "react-bootstrap/DropdownButton";
-import { logout, auth } from "./firebase";
+import { logout, auth, db } from "./firebase";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { useNavigate } from "react-router-dom";
+import dayjs from "dayjs";
+var relativeTime = require("dayjs/plugin/relativeTime");
+dayjs.extend(relativeTime);
 
 import "./App.css";
 
 function App(props) {
   const [user, loading, error] = useAuthState(auth);
+  const [sharedRooms, setSharedRooms] = useState(null);
 
   const navigate = useNavigate();
 
   function renderUserTitle() {
     if (user?.isAnonymous) {
-      return 'Anonymous'
+      return "Anonymous";
     } else {
-      return user?.displayName
+      return user?.displayName;
     }
+  }
+
+  function getSharedRooms() {
+    db.ref(`shared`).on("value", (snapshot) => {
+      const shared = snapshot.val();
+      console.log({ shared });
+      setSharedRooms(shared);
+    });
+  }
+
+  function handleCreateRoom(room) {
+    navigate("/rooms", { state: { room } });
   }
 
   useEffect(() => {
     if (!user) {
       navigate("/login");
+    } else {
+      getSharedRooms();
     }
   }, [user]);
 
   return (
     <div className="p-3">
-      <Row xs={1} md={5} className="mb-4 justify-content-between">
+      <Row xs={1} md={2} className="mb-4 justify-content-between">
         <Col className="d-flex justify-content-start align-items-center">
           <Form>
             <Form.Group controlId="search">
@@ -56,27 +75,45 @@ function App(props) {
             <Dropdown.Item eventKey="3">Networking</Dropdown.Item>
           </DropdownButton>
 
-          <Button variant="secondary" onClick={() => navigate('/rooms')}>
+          <Button variant="secondary" onClick={() => navigate("/rooms")}>
             New Room
           </Button>
         </Col>
       </Row>
       <h3>Hi, {renderUserTitle()}</h3>
-      <Row xs={1} md={5} className="g-4">
-        {Array.from({ length: 5 }).map((_, idx) => (
-          <Col>
-            <Card>
-              <Card.Body>
-                <Card.Title>Card title</Card.Title>
-                <Card.Text>
-                  This is a longer card with supporting text below as a natural
-                  lead-in to additional content. This content is a little bit
-                  longer.
-                </Card.Text>
-              </Card.Body>
-            </Card>
-          </Col>
-        ))}
+      <Row xs={1} md={2} lg={3} className="g-4">
+        {sharedRooms &&
+          Object.keys(sharedRooms).map((sharedRoomId) => (
+            <Col key={sharedRoomId}>
+              <Card>
+                <Card.Body>
+                  <Card.Title className="text-primary">
+                    {sharedRooms[sharedRoomId].tag}
+                  </Card.Title>
+                  Shared by{" "}
+                  <strong>
+                    {sharedRooms[sharedRoomId].originalCreatedUserName}
+                  </strong>
+                  <Card.Text>
+                    <small className="text-muted">
+                      {dayjs(sharedRooms[sharedRoomId]?.sharedAt).fromNow()}
+                    </small>
+                  </Card.Text>
+                  <Card.Text>
+                    Questions:{" "}
+                    {Object.keys(sharedRooms[sharedRoomId].questions)?.length}
+                  </Card.Text>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => handleCreateRoom(sharedRooms[sharedRoomId])}
+                  >
+                    Create Room
+                  </Button>
+                </Card.Body>
+              </Card>
+            </Col>
+          ))}
       </Row>
     </div>
   );
