@@ -7,11 +7,11 @@ import { auth, db, logout } from "./firebase";
 import { useNavigate } from "react-router-dom";
 
 function Layout(props) {
-  const [user, loading, error] = useAuthState(auth);
+  const [user] = useAuthState(auth);
   const navigate = useNavigate();
-  
+
   function handleLogout() {
-    const usersRef = db.ref(`users/${user?.uid}`).remove();
+    db.ref(`users/${user?.uid}`).remove();
     logout();
   }
 
@@ -27,7 +27,9 @@ function Layout(props) {
         </Col>
         {user && (
           <Col className="p-4 flex-grow-0">
-            <Button variant="light" onClick={handleLogout}>Logout</Button>
+            <Button variant="light" onClick={handleLogout}>
+              Logout
+            </Button>
           </Col>
         )}
       </Row>

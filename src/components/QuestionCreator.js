@@ -14,7 +14,7 @@ function QuestionCreator(props) {
   const [questionText, setQuestionText] = useState("");
   const [optionText, setOptionText] = useState("");
   const [options, setOptions] = useState([]);
-  const [user, loading] = useAuthState(auth);
+  const [user] = useAuthState(auth);
 
   function addOption(e) {
     e.preventDefault();

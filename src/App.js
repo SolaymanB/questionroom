@@ -1,27 +1,27 @@
 import { useEffect, useState } from "react";
 import Button from "react-bootstrap/Button";
-import Container from "react-bootstrap/Container";
 import Row from "react-bootstrap/Row";
 import Col from "react-bootstrap/Col";
 import Card from "react-bootstrap/Card";
 import Form from "react-bootstrap/Form";
-import Badge from "react-bootstrap/Badge";
 import Dropdown from "react-bootstrap/Dropdown";
 import DropdownButton from "react-bootstrap/DropdownButton";
-import { logout, auth, db } from "./firebase";
+import { auth, db } from "./firebase";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { useNavigate } from "react-router-dom";
 import dayjs from "dayjs";
-import "./App.css";
+
 var relativeTime = require("dayjs/plugin/relativeTime");
 dayjs.extend(relativeTime);
 
+import "./App.css";
 
 function App(props) {
   const [user, loading, error] = useAuthState(auth);
   const [sharedRooms, setSharedRooms] = useState(null);
 
   const navigate = useNavigate();
+
 
   function renderUserTitle() {
     if (user?.isAnonymous) {
@@ -34,7 +34,6 @@ function App(props) {
   function getSharedRooms() {
     db.ref(`shared`).on("value", (snapshot) => {
       const shared = snapshot.val();
-      console.log({ shared });
       setSharedRooms(shared);
     });
   }
@@ -120,3 +119,5 @@ function App(props) {
 }
 
 export default App;
+
+

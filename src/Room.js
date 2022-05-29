@@ -126,7 +126,7 @@ function Room(props) {
   function postQuestion(e) {
     e.preventDefault();
     setNewQuestionMode(false);
-    const usersRef = db.ref(`rooms/${room.roomId}/questions/${uuidv4()}`).set({
+    db.ref(`rooms/${room.roomId}/questions/${uuidv4()}`).set({
       uid: user.uid,
       text: question,
       type: "free",
@@ -262,7 +262,6 @@ function Room(props) {
     // go through each answer and collect text
     // split text on each space
     // group the same word together and count
-
     let textCollection = "";
     Object.keys(answers).forEach((answerId) => {
       console.log({ answerId });
@@ -282,25 +281,8 @@ function Room(props) {
         wordList = wordList.concat({ text: word, value: groupedWords[word] });
       });
     }
-
-    console.log({ wordList });
     return wordList;
   }
-
-  useEffect(() => {
-    if (!room && !isNewRoomMode) {
-      setShowJoinModal(true);
-    } else {
-      setShowJoinModal(false);
-    }
-  }, [room, params, location]);
-
-  useEffect(() => {
-    console.log({ loading });
-    if (!user && !loading) {
-      navigate("/login");
-    }
-  }, [user, loading]);
 
   function renderJoinModal() {
     return (
@@ -710,6 +692,21 @@ function Room(props) {
       </Col>
     );
   }
+
+  useEffect(() => {
+    if (!room && !isNewRoomMode) {
+      setShowJoinModal(true);
+    } else {
+      setShowJoinModal(false);
+    }
+  }, [room, params, location]);
+
+  useEffect(() => {
+    console.log({ loading });
+    if (!user && !loading) {
+      navigate("/login");
+    }
+  }, [user, loading]);
 
   return (
     <>
