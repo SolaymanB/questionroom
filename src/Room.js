@@ -685,9 +685,7 @@ function Room(props) {
                             size="sm"
                             onClick={() => handlePublishQuestion(question)}
                           >
-                            {question.showQuestion
-                              ? "Publish Question"
-                              : "Publish Question"}
+                            Publish Questions
                           </Button>
                         )}
                         {isRoomHost && question.showQuestion && (
@@ -706,9 +704,7 @@ function Room(props) {
                               )
                             }
                           >
-                            {question.visibility === "public"
-                              ? "Hide Answers"
-                              : "Hide Answers"}
+                            Show Answers
                           </Button>
                         )}
                       </Card.Body>
