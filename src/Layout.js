@@ -19,7 +19,7 @@ function Layout(props) {
     <Container fluid className="d-flex flex-column h-100">
       <Row className="bg-light">
         <Col className="p-4">
-          <img
+          <img alt="logo"
             src="/logo.svg"
             className="img-fluid"
             onClick={() => navigate("/")}

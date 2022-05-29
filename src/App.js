@@ -18,7 +18,7 @@ dayjs.extend(relativeTime);
 
 
 function App(props) {
-  const [user, loading, error] = useAuthState(auth);
+  const [user] = useAuthState(auth);
   const [sharedRooms, setSharedRooms] = useState(null);
 
   const navigate = useNavigate();
@@ -49,7 +49,7 @@ function App(props) {
     } else {
       getSharedRooms();
     }
-  }, [user]);
+  }, [user, navigate]);
 
   return (
     <div className="p-3">

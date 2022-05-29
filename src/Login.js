@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import {
   auth,
   db,
@@ -54,7 +54,7 @@ function Login() {
     // when there is a user signed in, take them
     // to the dashboard screen
     if (user) navigate("/");
-  }, [user]);
+  }, [user, navigate]);
 
   useEffect(() => {
     // everytime signInType changes clear the fields
