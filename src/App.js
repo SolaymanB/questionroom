@@ -12,10 +12,10 @@ import { logout, auth, db } from "./firebase";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { useNavigate } from "react-router-dom";
 import dayjs from "dayjs";
+import "./App.css";
 var relativeTime = require("dayjs/plugin/relativeTime");
 dayjs.extend(relativeTime);
 
-import "./App.css";
 
 function App(props) {
   const [user, loading, error] = useAuthState(auth);

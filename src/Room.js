@@ -18,6 +18,7 @@ import cx from "classnames";
 import QuestionCreator from "./components/QuestionCreator";
 import DropdownButton from "react-bootstrap/DropdownButton";
 import Dropdown from "react-bootstrap/Dropdown";
+import ReactWordcloud from "react-wordcloud";
 
 function Room(props) {
   const navigate = useNavigate();
@@ -32,12 +33,12 @@ function Room(props) {
   const [currentAnswerQuestionId, setCurrentAnswerQuestionId] = useState(null);
   const [currentAnswerText, setCurrentAnswerText] = useState("");
   const [newQuestionMode, setNewQuestionMode] = useState(false);
-  const [showJoinModal, setShowJoinModal] = useState(true);
+  const [showJoinModal, setShowJoinModal] = useState(false);
 
   const [user, loading] = useAuthState(auth);
   let params = useParams();
 
-  const isNewRoomMode = Boolean(!params?.roomId);
+  const isNewRoomMode = Boolean(!params?.roomId || location.state?.room);
   const isRoomHost = room?.hostId === user?.uid;
 
   function joinRoom(roomId) {
@@ -86,7 +87,7 @@ function Room(props) {
       .set(roomObject)
       .then(() => {
         joinRoom(roomObject.roomId);
-        navigate(`/rooms/${roomObject.roomId}`);
+        navigate(`/rooms/${roomObject.roomId}`, { replace: true });
       });
   }
 
@@ -256,6 +257,44 @@ function Room(props) {
     db.ref("shared").push(sharedRoom);
   }
 
+  function generateWordCloud(answers) {
+    if (!answers) return;
+    // go through each answer and collect text
+    // split text on each space
+    // group the same word together and count
+
+    let textCollection = "";
+    Object.keys(answers).forEach((answerId) => {
+      console.log({ answerId });
+      textCollection = textCollection + " " + answers[answerId].text;
+    });
+
+    const splitWords = textCollection.split(" ");
+    let groupedWords = {};
+    splitWords.map(function (a) {
+      if (a in groupedWords) groupedWords[a]++;
+      else groupedWords[a] = 1;
+    });
+
+    let wordList = [];
+    if (Object.keys(groupedWords).length) {
+      Object.keys(groupedWords).forEach((word) => {
+        wordList = wordList.concat({ text: word, value: groupedWords[word] });
+      });
+    }
+
+    console.log({ wordList });
+    return wordList;
+  }
+
+  useEffect(() => {
+    if (!room && !isNewRoomMode) {
+      setShowJoinModal(true);
+    } else {
+      setShowJoinModal(false);
+    }
+  }, [room, params, location]);
+
   useEffect(() => {
     console.log({ loading });
     if (!user && !loading) {
@@ -310,6 +349,24 @@ function Room(props) {
                       Questions:{" "}
                       {location?.state?.room &&
                         Object.keys(location?.state?.room?.questions)?.length}
+                    </Card.Text>
+                    <ListGroup>
+                      {Object.keys(location.state.room?.questions).map(
+                        (questionId) => {
+                          return (
+                            <ListGroup.Item key={questionId}>
+                              Q.{" "}
+                              {location.state.room?.questions[questionId].text}
+                            </ListGroup.Item>
+                          );
+                        }
+                      )}
+                    </ListGroup>
+                    <Card.Text className="mt-2">
+                      <small>
+                        Questions shared by:{" "}
+                        {location.state?.room?.originalCreatedUserName}
+                      </small>
                     </Card.Text>
                   </Card.Body>
                 </Card>
@@ -566,6 +623,17 @@ function Room(props) {
                             })}
                           </ListGroup>
                         )}
+                        {question.visibility === "public" &&
+                          question.type !== "multi" && (
+                            <div
+                              className="bg-grey mb-3"
+                              style={{ width: "100%", height: "200px" }}
+                            >
+                              <ReactWordcloud
+                                words={generateWordCloud(question?.answers)}
+                              />
+                            </div>
+                          )}
 
                         {currentAnswerQuestionId === questionId &&
                           question.type === "free" &&
