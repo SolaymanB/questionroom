@@ -59,9 +59,9 @@ function App(props) {
 
   return (
     <div className="p-3">
-      <Row xs={1} md={2} className="mb-4 justify-content-between">
+      <Row xs={2} md={3} className="mb-4 justify-content-between">
         <Col className="d-flex justify-content-start align-items-center">
-          <h3 className="m-0">Hi, {renderUserTitle()}</h3>
+          <h5 className="m-0">Hi, {renderUserTitle()}</h5>
         </Col>
         <Col className="d-flex justify-content-end align-items-center">
           <DropdownButton
@@ -69,6 +69,7 @@ function App(props) {
             align="end"
             title={currentFilter}
             id="tags-dropdown-menu"
+            className="me-1"
           >
             {['All', 'Computer Science', 'Forensics', 'Networking'].map((tag, i) => {
               return (
@@ -79,7 +80,7 @@ function App(props) {
             })}
           </DropdownButton>
 
-          <Button variant="secondary" onClick={() => navigate("/rooms")}>
+          <Button size={'sm'} variant="secondary" onClick={() => navigate("/rooms")}>
             New Room
           </Button>
         </Col>

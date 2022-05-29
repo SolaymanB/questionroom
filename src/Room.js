@@ -479,15 +479,15 @@ function Room(props) {
       )
       : null;
     return (
-      <Col className="p-5 d-flex flex-column">
-        <Row xs={1} sm={1} md={2} className="mb-5">
+      <Col className="p-2 p-md-5 d-flex flex-column">
+        <Row xs={1} sm={1} md={2} className="mb-2 mb-md-5 ">
           <Col>
             <h1 className="text-secondary">
               <strong>{room?.tag}</strong>
             </h1>
             <p>{room?.roomDesc}</p>
           </Col>
-          <Col className="d-flex justify-content-end">
+          <Col className="justify-content-end d-none d-md-flex">
             <div>
               {isRoomHost && (
                 <Button
@@ -532,7 +532,6 @@ function Room(props) {
                         "border-secondary": !isCurrentUserQuestion,
                       })}
                       style={{
-                        width: "500px",
                         marginLeft: isCurrentUserQuestion ? "auto" : "",
                       }}
                     >
