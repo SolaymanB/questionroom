@@ -490,25 +490,28 @@ function Room(props) {
           <Col className="justify-content-end d-none d-md-flex">
             <div>
               {isRoomHost && (
-                <Button
-                  size="lg"
-                  variant="secondary"
-                  onClick={() => setNewQuestionMode(true)}
-                >
-                  New Question
-                </Button>
+                <>
+                  <Button
+                    size="lg"
+                    variant="secondary"
+                    onClick={() => setNewQuestionMode(true)}
+                  >
+                    New Question
+                  </Button>
+                  <Button
+                    size="lg"
+                    variant="light"
+                    className="mx-3"
+                    onClick={() => setShowShareModal(true)}
+                  >
+                    Share
+                  </Button>
+                  <Button size="lg" variant="light">
+                    Export
+                  </Button>
+
+                </>
               )}
-              <Button
-                size="lg"
-                variant="light"
-                className="mx-3"
-                onClick={() => setShowShareModal(true)}
-              >
-                Share
-              </Button>
-              <Button size="lg" variant="light">
-                Export
-              </Button>
             </div>
           </Col>
         </Row>
