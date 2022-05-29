@@ -288,12 +288,12 @@ function Room(props) {
     return (
       <Modal show={showJoinModal} backdrop="static" centered>
         <Modal.Header>
-          <Modal.Title>Join Session</Modal.Title>
+          <Modal.Title>Join Room</Modal.Title>
         </Modal.Header>
-        <Modal.Body>Are you sure you want to join this session?</Modal.Body>
+        <Modal.Body>Are you sure you want to join this Room?</Modal.Body>
         <Modal.Footer>
           <Button variant="secondary" onClick={() => joinRoom()}>
-            Join Session
+            Join Room
           </Button>
           <Button variant="danger" onClick={() => navigate("/")}>
             Cancel
