@@ -20,6 +20,7 @@ dayjs.extend(relativeTime);
 function App(props) {
   const [user] = useAuthState(auth);
   const [sharedRooms, setSharedRooms] = useState(null);
+  const [currentFilter, setCurrentFilter] = useState('All');
 
   const navigate = useNavigate();
 
@@ -51,28 +52,31 @@ function App(props) {
     }
   }, [user, navigate]);
 
+  const asArray = sharedRooms ? Object.entries(sharedRooms) : [];
+  const filtered = asArray.filter(([key, value]) => value.tag.toLowerCase() === currentFilter.toLowerCase());
+  // Convert the key/value array back to an object:
+  const sharedRoomsWithFilters = Object.fromEntries(filtered);
+
   return (
     <div className="p-3">
       <Row xs={1} md={2} className="mb-4 justify-content-between">
         <Col className="d-flex justify-content-start align-items-center">
-          <Form>
-            <Form.Group controlId="search">
-              <Form.Control type="search" placeholder="Search..." />
-            </Form.Group>
-          </Form>
+          <h3 className="m-0">Hi, {renderUserTitle()}</h3>
         </Col>
         <Col className="d-flex justify-content-end align-items-center">
           <DropdownButton
             variant="light"
             align="end"
-            title="Computer Science"
+            title={currentFilter}
             id="tags-dropdown-menu"
           >
-            <Dropdown.Item active eventKey="1">
-              Computer Science
-            </Dropdown.Item>
-            <Dropdown.Item eventKey="2">Forensics</Dropdown.Item>
-            <Dropdown.Item eventKey="3">Networking</Dropdown.Item>
+            {['All', 'Computer Science', 'Forensics', 'Networking'].map((tag, i) => {
+              return (
+                <Dropdown.Item active={currentFilter === tag} eventKey={i} onClick={() => setCurrentFilter(tag)}>
+                  {tag}
+                </Dropdown.Item>
+              )
+            })}
           </DropdownButton>
 
           <Button variant="secondary" onClick={() => navigate("/rooms")}>
@@ -80,10 +84,9 @@ function App(props) {
           </Button>
         </Col>
       </Row>
-      <h3>Hi, {renderUserTitle()}</h3>
       <Row xs={1} md={2} lg={3} className="g-4">
         {sharedRooms &&
-          Object.keys(sharedRooms).map((sharedRoomId) => (
+          Object.keys(currentFilter === 'All' ? sharedRooms : sharedRoomsWithFilters).map((sharedRoomId) => (
             <Col key={sharedRoomId}>
               <Card>
                 <Card.Body>
