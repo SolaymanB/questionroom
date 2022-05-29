@@ -19,6 +19,7 @@ import QuestionCreator from "./components/QuestionCreator";
 import DropdownButton from "react-bootstrap/DropdownButton";
 import Dropdown from "react-bootstrap/Dropdown";
 import ReactWordcloud from "react-wordcloud";
+import QRCode from "react-qr-code";
 
 function Room(props) {
   const navigate = useNavigate();
@@ -34,6 +35,7 @@ function Room(props) {
   const [currentAnswerText, setCurrentAnswerText] = useState("");
   const [newQuestionMode, setNewQuestionMode] = useState(false);
   const [showJoinModal, setShowJoinModal] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
 
   const [user, loading] = useAuthState(auth);
   let params = useParams();
@@ -255,6 +257,7 @@ function Room(props) {
     });
 
     db.ref("shared").push(sharedRoom);
+    setShowShareModal(false)
   }
 
   function generateWordCloud(answers) {
@@ -420,34 +423,60 @@ function Room(props) {
       </Modal>
     );
   }
+  function renderShareModal() {
+    return (
+      <Modal
+        show={showShareModal}
+        centered
+        onHide={() => setShowShareModal(false)}
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>Share</Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="text-center">
+          <Row>
+            <Col>
+              <h3>Scan to join</h3>
+              <QRCode value={window.location.href} size={200} />
+            </Col>
+            <Col>
+              <h3>Share with others</h3>
+              <p className="text-muted">Share the questions in this room with others. All participant information is not included.</p>
+              <Button variant="secondary" onClick={shareRoom}>Share Room</Button>
+            </Col>
+          </Row>
+        </Modal.Body>
+      </Modal>
+    );
+  }
 
   function renderRoom() {
     // convert objects into arrays for easy sorting
     let questions = room?.questions
       ? Object.keys(room?.questions).map((k) => {
-          return { ...room?.questions[k], questionId: k };
-        })
+        return { ...room?.questions[k], questionId: k };
+      })
       : null;
     let sortedQuestions = questions
       ? questions?.sort((a, b) =>
-          dayjs(
-            isRoomHost
-              ? a.askedTime
-              : a.publishedTime !== undefined
+        dayjs(
+          isRoomHost
+            ? a.askedTime
+            : a.publishedTime !== undefined
               ? a.publishedTime
               : a.askedTime
-          ).isAfter(
-            dayjs(
-              isRoomHost
-                ? b.askedTime
-                : b.publishedTime !== undefined
+        ).isAfter(
+          dayjs(
+            isRoomHost
+              ? b.askedTime
+              : b.publishedTime !== undefined
                 ? b.publishedTime
                 : b.askedTime
-            )
           )
-            ? 1
-            : -1
         )
+          ? 1
+          : -1
+      )
       : null;
     return (
       <Col className="p-5 d-flex flex-column">
@@ -473,7 +502,7 @@ function Room(props) {
                 size="lg"
                 variant="light"
                 className="mx-3"
-                onClick={shareRoom}
+                onClick={() => setShowShareModal(true)}
               >
                 Share
               </Button>
@@ -528,7 +557,7 @@ function Room(props) {
                             Object.keys(question?.answers)?.map((key) => {
                               if (
                                 question?.answers[key].visibility ===
-                                  "public" ||
+                                "public" ||
                                 question?.uid === user?.uid ||
                                 question?.answers[key].uid === user.uid ||
                                 room.hostId === user.uid
@@ -537,7 +566,7 @@ function Room(props) {
                                   <ListGroup.Item
                                     action
                                     key={key}
-                                    // onClick={() => handleAnswerQuestion(question, a)}
+                                  // onClick={() => handleAnswerQuestion(question, a)}
                                   >
                                     A. {question?.answers[key]?.text}{" "}
                                     <p className="m-0">
@@ -715,6 +744,7 @@ function Room(props) {
         {renderNewQuestionCreator()}
         {renderNewRoomCreator()}
         {renderRoom()}
+        {renderShareModal()}
       </Row>
       <div
         className="position-fixed w-100"
